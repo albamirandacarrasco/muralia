@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/v1.0/01-create-customers-table.yaml
+  - include:
+      file: db/changelog/changes/v1.0/02-create-images-table.yaml
+  - include:
+      file: db/changelog/changes/v1.0/03-insert-test-data.yaml

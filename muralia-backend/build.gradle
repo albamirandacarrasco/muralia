@@ -1,0 +1,129 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.openapi.generator' version '7.2.0'
+}
+
+group = 'com.muralia'
+version = '1.0-SNAPSHOT'
+sourceCompatibility = '17'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // PostgreSQL
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Liquibase for database migrations
+    implementation 'org.liquibase:liquibase-core'
+
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+
+    // OpenAPI/Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
+    // Jackson for datetime
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // Lombok (optional but recommended)
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // OpenAPI Generator annotations
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.20'
+
+    // Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+
+    // Testcontainers for integration tests
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// OpenAPI Generator configuration
+openApiGenerate {
+    generatorName = 'spring'
+    inputSpec = "${projectDir}/openapi/muralia-api.yaml"
+    outputDir = "${buildDir}/generated"
+    apiPackage = 'com.muralia.api'
+    modelPackage = 'com.muralia.api.model'
+    invokerPackage = 'com.muralia.api.invoker'
+    configOptions = [
+        dateLibrary: 'java8',
+        delegatePattern: 'true',
+        interfaceOnly: 'true',
+        useTags: 'true',
+        useSpringBoot3: 'true',
+        skipDefaultInterface: 'true',
+        useJakartaEe: 'true'
+    ]
+}
+
+// Add generated sources to the source sets
+sourceSets {
+    main {
+        java {
+            srcDir "${buildDir}/generated/src/main/java"
+        }
+    }
+    integrationTest {
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+            srcDir 'src/integrationTest/java'
+        }
+        resources {
+            srcDir 'src/integrationTest/resources'
+        }
+    }
+}
+
+// Integration test configuration
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+// Handle duplicate resources
+tasks.named('processIntegrationTestResources') {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+// Integration test task
+task integrationTest(type: Test) {
+    description = 'Runs integration tests'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+    shouldRunAfter test
+    useJUnitPlatform()
+}
+
+check.dependsOn integrationTest
+
+// Make compileJava depend on openApiGenerate
+tasks.named('compileJava') {
+    dependsOn 'openApiGenerate'
+}

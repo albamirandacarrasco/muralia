@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: 03-insert-test-data
+      author: muralia
+      context: dev
+      changes:
+        - insert:
+            tableName: customers
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: email
+                  value: test@muralia.com
+              - column:
+                  name: username
+                  value: testuser
+              - column:
+                  name: password
+                  value: $2a$10$m5anE5AYsyY5QvYOkmgzyuuJXza1HKAACmN8ptO7JFb/Wzh4KsWa.
+              - column:
+                  name: first_name
+                  value: Test
+              - column:
+                  name: last_name
+                  value: User
+              - column:
+                  name: created_at
+                  valueDate: now()
+              - column:
+                  name: updated_at
+                  valueDate: now()
+        - sql:
+            dbms: postgresql
+            sql: SELECT setval('customers_id_seq', (SELECT MAX(id) FROM customers));
+      rollback:
+        - delete:
+            tableName: customers
+            where: email = 'test@muralia.com'

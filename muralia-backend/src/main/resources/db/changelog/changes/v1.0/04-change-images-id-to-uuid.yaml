@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: 04-change-images-id-to-uuid
+      author: muralia
+      changes:
+        # Enable UUID extension in PostgreSQL
+        - sql:
+            dbms: postgresql
+            sql: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+        # Drop existing images (already deleted in production)
+        - delete:
+            tableName: images
+
+        # Drop the old sequence
+        - sql:
+            dbms: postgresql
+            sql: DROP SEQUENCE IF EXISTS images_id_seq CASCADE;
+
+        # Change id column type to UUID
+        - modifyDataType:
+            tableName: images
+            columnName: id
+            newDataType: UUID
+
+        # Remove auto-increment (no longer needed for UUID)
+        - dropDefaultValue:
+            tableName: images
+            columnName: id
+
+        # Add default value to generate UUIDs automatically
+        - addDefaultValue:
+            tableName: images
+            columnName: id
+            defaultValueComputed: uuid_generate_v4()
+
+      rollback:
+        # Rollback is complex, would need to recreate as BIGSERIAL
+        - sql:
+            sql: ALTER TABLE images ALTER COLUMN id DROP DEFAULT;
+        - sql:
+            sql: DROP EXTENSION IF EXISTS "uuid-ossp";
+        - modifyDataType:
+            tableName: images
+            columnName: id
+            newDataType: BIGSERIAL
